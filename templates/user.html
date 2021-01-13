@@ -1,0 +1,29 @@
+<body style="background-color:lavender;">
+</body>
+
+<h1>Retrive Data From mysql Database</h1>
+
+<table style="width:100%" border=1>
+    <tr>
+        <th>Name</th>
+        <th>Constellation</th>
+        <th>Decommission</th>
+        <th>Track</th>
+        <th>Control</th>
+        <th>Health</th>
+    </tr>
+    {% for cw in userDetails %}
+    <tr>
+        <td style="text-align:center"> {{cw[0]}}</td>
+        <td style="text-align:center"> {{cw[1]}}</td>
+        <td style="text-align:center"> {{cw[2]}}</td>
+        <td style="text-align:center"> {{cw[3]}}</td>
+        <td style="text-align:center"> {{cw[4]}}</td>
+        <td style="text-align:center"> {{cw[5]}}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<form method="GET" action="/">
+    <input type="submit" value="Return">
+</form>

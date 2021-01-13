@@ -1,0 +1,239 @@
+0. Create flaks application
+----
+
+* Application name is cw_app.py, bellow is the code:
+
+CODE cw_app:
+
+    #Importing required libraries
+    import os
+    from flask import Flask, render_template, request, redirect
+    from flask_mysqldb import MySQL
+
+    app = Flask(__name__)
+
+    #Configure db for the connection
+    app.config['MYSQL_HOST'] = 'db'
+    app.config['MYSQL_USER'] = 'root'
+    app.config['MYSQL_PASSWORD'] = '1234'
+    app.config['MYSQL_DB'] = 'cw_db'
+
+    mysql = MySQL(app)
+
+    @app.route("/", methods=['GET', 'POST'])
+    def index():
+        if request.method == 'POST':
+            #Fetch form data
+            userDetails = request.form
+            Name = userDetails['Name']
+            Constellation = userDetails['Constellation']
+            Decommission = userDetails['Decommission']
+            Track = userDetails['Track']
+            Control = userDetails['Control']
+            Health = userDetails['Health']
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO cw(Name, Constellation, Decommission, Track, Control, Health) VALUES(%s, %s, %s, %s, %s, %s)",(Name, Constellation, Decommission, Track, Control, Health))
+            mysql.connection.commit()
+            cur.close()
+            return redirect("/users") #Direct to the user page on the submit
+        return render_template('index.html')
+
+    #Show data from the database
+    @app.route("/users")
+    def users():
+        cur = mysql.connection.cursor()
+        resultValue = cur.execute("SELECT * FROM cw")
+        if resultValue > 0:
+            userDetails = cur.fetchall()
+        return render_template('user.html',userDetails=userDetails)
+        if request.method == 'GET':
+        return redirect ("/") #Direct to the home page on return
+
+    if __name__ == '__main__':
+        app.run(debug=True, host="0.0.0.0")
+
+1. Created two html files to enter and show data after retreving from the database in a template folder
+----
+
+CODE index.html:
+
+    <body style="background-color:lavender;">
+        </body>
+
+    <h1>SpaceX Starlink Project</h1>
+    <h2>Managing and Monitoring Low Orbit Satellite Constellation</h2>
+
+    <form method="POST" action="">
+        1. Operator Name:  <input type="text" name="Name" />
+        <br>
+        2. Add to Constellation:  <input type="text" name="Constellation" />
+        <br>
+        3. Decommission value: <input type="text" name="Decommission" />
+        <br>
+        4. Track the Orbit:  <input type="text" name="Track" />
+        <br>
+        5. Control the Orbit: <input type="text" name="Control" />
+        <br>
+        6. Health of Satellite: <input type="text" name="Health" />
+        <br>
+        <input type="submit">
+    </form>
+
+    <p>This is a test suit developed for the Cloud Computing
+        coursework
+    </p>
+
+CODE user.html:
+
+    <body style="background-color:lavender;">
+    </body>
+
+    <h1>Retrive Data From mysql Database</h1>
+
+    <table style="width:100%" border=1>
+        <tr>
+            <th>Name</th>
+            <th>Constellation</th>
+            <th>Decommission</th>
+            <th>Track</th>
+            <th>Control</th>
+            <th>Health</th>
+        </tr>
+        {% for cw in userDetails %}
+        <tr>
+            <td style="text-align:center"> {{cw[0]}}</td>
+            <td style="text-align:center"> {{cw[1]}}</td>
+            <td style="text-align:center"> {{cw[2]}}</td>
+            <td style="text-align:center"> {{cw[3]}}</td>
+            <td style="text-align:center"> {{cw[4]}}</td>
+            <td style="text-align:center"> {{cw[5]}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <form method="GET" action="/">
+        <input type="submit" value="Return">
+    </form>
+
+2. Create dockerfile for cw_app
+----
+
+* For this went into the directory with about cw_app.py file then created a Dokcerfile inside the same
+
+CODE Dokcerfile for cw_app:
+
+    #Use ubuntu base image for the app to run on
+    FROM ubuntu
+
+    #Getting requied packages and making the environment for the task
+    RUN apt-get update
+    RUN apt-get -y upgrade
+    RUN apt-get install -y python3.8 python3-pip sudo mysql-server libmysqlclient-dev
+    RUN python3 -m  pip install flask flask-mysqldb
+    RUN sudo service mysql start
+
+    #Copy app file and html templates inside ubuntu operating system
+    COPY ./cw_app.py /opt/
+    COPY ./templates/ /opt/templates/
+
+    EXPOSE 5000
+    ENTRYPOINT FLASK_APP=/opt/cw_app.py flask run --host=0.0.0.0
+    #Expose the continer to 5000 and run the app
+
+3. Build the docker image and push it to docker hub with the tag final
+----
+
+CODE:
+
+    docker build . -t indikul/cw_app:final
+    docker push indikul/cw_app:final
+
+4. Create Dockerfile for the Database
+----
+
+* For this navigated to mysql in the local system and created a docker image. Used a scprit file to create a
+database and a table with correct names and data types
+
+CODE Dockerfile for mysql:
+
+    #Use mysql base image
+    FROM mysql
+
+    #Setting up environment varialbes & create database and use it
+    ENV MYSQL_ROOT_PASSWORD=1234
+    ENV MYSQL_DATABASE cw_db
+
+    #Expose to the default mysql port
+    EXPOSE 3306
+    #Copy the script file and create the table
+    COPY ./scripts/ /docker-entrypoint-initdb.d/
+
+    CMD ["mysqld"]
+
+5. Build the docker image and push it to docker hub with the tag final
+----
+
+CODE:
+
+    docker build . -t indikul/custom_mysql:final
+    docker push indikul/custom_mysql:final
+
+6. Run two images created with links to test the app on localhost: 5000
+----
+
+CODE:
+
+    docker run -it -d --rm --name=db indikul/custom_mysql:final #database image with the name db
+    docker run -it -d --rm --name=cw_app -p 5000:5000 --link db:mysql indikul/cw_app:final #app image with link
+
+7. Start minikube. yaml files are provided separately
+----
+CODE:
+    minikube start #To start minikube
+
+8. Creating Pods, Services and check whether it is working
+----
+
+CODE:
+    kubectl create -f cw-app-pod.yaml
+    kubectl create -f cw-app-service.yaml
+
+    kubectl create -f db-pod.yaml
+    kubectl create -f db-service.yaml
+
+    minikube service --url cw-app-service #To retrive the external IP and access via web browser
+
+9. Clear the environment befroe deployments
+----
+
+CODE:
+    kubectl delete pod cw-app-pod db-pod
+    kubectl delete service db cw-app-service
+    kubectl get pods,svc #To chekc the running pods and Services
+
+10. Creating the deployments and Services
+----
+
+CODE:
+    kubectl create -f cw-app-deploy.yaml
+    kubectl create -f cw-app-service.yaml
+    kubectl create -f db-deploy.yaml
+    kubectl create -f db-service.yaml
+
+11. Chekc the deployment, delete pod to check the high availability and run the application to check
+----
+
+CODE:
+    kubectl get pods,svc,deployment
+    kubectl delete pod cw-app-deploy-76fbdb758b-b2lbg
+    kubectl get pods,svc,deployment
+    minikube service --url cw-app-service #To retrive the external IP and access via web browser
+
+12. Sacle up and down and chekc the system and the app
+----
+
+CODE:
+    kubectl scale deployment cw-app-deploy --replicas=6
+    kubectl scale deployment cw-app-deploy --replicas=3
+    kubectl get pods,svc,deployment
+    minikube service --url cw-app-service #To retrive the external IP and access via web browser
