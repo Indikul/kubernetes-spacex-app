@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: db-deploy
+ labels:
+  name: db-deploy
+  app: cw-app
+spec:
+ replicas: 1
+ selector:
+  matchLabels:
+   name: db-pod
+   app: cw-app
+ template:
+  metadata:
+   name: db-pod
+   labels:
+    name: db-pod
+    app: cw-app
+  spec:
+   containers:
+     - name: db
+       image: indikul/custom_mysql:final
+       ports:
+        - containerPort: 3306

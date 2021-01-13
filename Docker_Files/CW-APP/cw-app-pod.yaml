@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+ name: cw-app-pod
+ labels:
+  name: cw-app-pod
+  app: cw-app
+spec:
+ containers:
+   - name: cw-app
+     image: indikul/cw_app:final
+     ports:
+      - containerPort: 5000
